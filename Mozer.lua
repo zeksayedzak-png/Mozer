@@ -1,7 +1,6 @@
 -- ================================================
--- 🎯 MOZER - FIXED MOBILE UI
+-- 🎯 MOZER - WORKING MOBILE UI
 -- ⚡ METHOD 1 & 6 | PRECISION | ZERO NOISE
--- 📱 FULL TOUCH INTERFACE | BLACK BACKGROUND
 -- ================================================
 
 local Players = game:GetService("Players")
@@ -11,10 +10,9 @@ local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local plr = Players.LocalPlayer
 local gameId = game.PlaceId
-local playerGui = plr:WaitForChild("PlayerGui")
 
 -- ================================================
--- 📊 المتغيرات العامة
+-- 📊 المتغيرات
 -- ================================================
 local REAL_GAMEPASSES = {}
 local SELECTED_ID = nil
@@ -46,68 +44,7 @@ local function updateRainbow(guiObject)
 end
 
 -- ================================================
--- 🌈 شاشة الترحيب (سوداء بالكامل، بدون شفافية)
--- ================================================
-local function showWelcomeScreen()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "MozerWelcome"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = playerGui
-    
-    -- خلفية سوداء بالكامل (بدون شفافية)
-    local background = Instance.new("Frame")
-    background.Size = UDim2.new(1, 0, 1, 0)
-    background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    background.BackgroundTransparency = 0  -- صفر شفافية = أسود كامل
-    background.Parent = screenGui
-    
-    -- نص Mozer (أصغر حجماً)
-    local mozerText = Instance.new("TextLabel")
-    mozerText.Size = UDim2.new(1, 0, 0.3, 0)
-    mozerText.Position = UDim2.new(0, 0, 0.3, 0)
-    mozerText.BackgroundTransparency = 1
-    mozerText.Text = "MOZER"
-    mozerText.TextSize = 50
-    mozerText.TextScaled = true
-    mozerText.Font = Enum.Font.GothamBold
-    mozerText.TextColor3 = rainbowColors[1]
-    mozerText.Parent = background
-    
-    -- نص Welcome
-    local welcomeText = Instance.new("TextLabel")
-    welcomeText.Size = UDim2.new(1, 0, 0.15, 0)
-    welcomeText.Position = UDim2.new(0, 0, 0.55, 0)
-    welcomeText.BackgroundTransparency = 1
-    welcomeText.Text = "welcome"
-    welcomeText.TextSize = 35
-    welcomeText.TextScaled = true
-    welcomeText.Font = Enum.Font.Gotham
-    welcomeText.TextColor3 = rainbowColors[4]
-    welcomeText.Parent = background
-    
-    -- تأثير قوس قزح
-    task.spawn(function()
-        for i = 1, 30 do
-            task.wait(0.1)
-            if i % 3 == 0 then
-                updateRainbow(mozerText)
-                updateRainbow(welcomeText)
-            end
-        end
-    end)
-    
-    -- اختفاء بعد 3 ثواني
-    task.wait(3)
-    TweenService:Create(background, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
-    TweenService:Create(mozerText, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
-    TweenService:Create(welcomeText, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
-    task.wait(0.3)
-    screenGui:Destroy()
-    createMainUI()
-end
-
--- ================================================
--- 📊 جلب Gamepasses الحقيقية
+-- 📊 جلب Gamepasses
 -- ================================================
 local function FetchGamepasses()
     local url = "https://economy.roblox.com/v1/games/" .. gameId .. "/gamepasses?limit=100"
@@ -119,12 +56,9 @@ local function FetchGamepasses()
         for _, gp in ipairs(response.data) do
             table.insert(REAL_GAMEPASSES, {id = gp.id, name = gp.name, price = gp.price or 0})
         end
-        print("✅ Loaded " .. #REAL_GAMEPASSES .. " Gamepasses")
         return true
-    else
-        print("❌ Failed to load Gamepasses")
-        return false
     end
+    return false
 end
 
 -- ================================================
@@ -140,7 +74,6 @@ local function AnalyzePurchaseRemotes()
             end
         end
     end
-    print("🔍 Found " .. #TARGET_REMOTES .. " purchase Remotes")
     return #TARGET_REMOTES
 end
 
@@ -188,32 +121,36 @@ local function Method6_RemoteReplay()
 end
 
 -- ================================================
--- 🎨 إنشاء الواجهة الرئيسية (سوداء بالكامل)
+-- 🎨 إنشاء الواجهة الرئيسية
 -- ================================================
 local function createMainUI()
-    print("🎨 Creating Main UI...")
+    -- التأكد من وجود PlayerGui
+    local playerGui = plr:FindFirstChild("PlayerGui")
+    if not playerGui then
+        playerGui = Instance.new("PlayerGui")
+        playerGui.Parent = plr
+    end
     
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "MozerUI"
     screenGui.ResetOnSpawn = false
     screenGui.Parent = playerGui
     
-    -- المربع الرئيسي (أسود)
+    -- المربع الرئيسي
     mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 350, 0, 500)
     mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- أسود
+    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     mainFrame.BackgroundTransparency = 0
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = screenGui
     
-    -- زوايا ناعمة
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 20)
     corner.Parent = mainFrame
     
-    -- شريط العنوان (أسود غامق)
+    -- شريط العنوان
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 45)
     titleBar.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
@@ -224,7 +161,7 @@ local function createMainUI()
     titleCorner.CornerRadius = UDim.new(0, 20)
     titleCorner.Parent = titleBar
     
-    -- نص "Be Mozer"
+    -- نص Be Mozer
     local titleText = Instance.new("TextLabel")
     titleText.Size = UDim2.new(0.7, 0, 1, 0)
     titleText.Position = UDim2.new(0, 15, 0, 0)
@@ -276,17 +213,14 @@ local function createMainUI()
     
     -- تأثير قوس قزح على M
     task.spawn(function()
-        while true do
-            task.wait(0.2)
-            if miniBtn.Visible then
+        while task.wait(0.2) do
+            if miniBtn and miniBtn.Visible then
                 updateRainbow(miniBtn)
             end
         end
     end)
     
-    -- ============================================
     -- تبويبات
-    -- ============================================
     local tabFrame = Instance.new("Frame")
     tabFrame.Size = UDim2.new(1, 0, 0, 45)
     tabFrame.Position = UDim2.new(0, 0, 0, 0)
@@ -336,9 +270,7 @@ local function createMainUI()
     buyContent.Visible = false
     buyContent.Parent = contentFrame
     
-    -- ============================================
-    -- صفحة Gamepass
-    -- ============================================
+    -- Dropdown
     local dropdownBtn = Instance.new("TextButton")
     dropdownBtn.Size = UDim2.new(0.9, 0, 0, 55)
     dropdownBtn.Position = UDim2.new(0.05, 0, 0.08, 0)
@@ -366,6 +298,11 @@ local function createMainUI()
     listCorner.CornerRadius = UDim.new(0, 12)
     listCorner.Parent = dropdownList
     
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 2)
+    listLayout.Parent = dropdownList
+    
+    -- زر Select
     local selectBtn = Instance.new("TextButton")
     selectBtn.Size = UDim2.new(0.9, 0, 0, 50)
     selectBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
@@ -380,9 +317,7 @@ local function createMainUI()
     selectCorner.CornerRadius = UDim.new(0, 12)
     selectCorner.Parent = selectBtn
     
-    -- ============================================
-    -- صفحة Buy
-    -- ============================================
+    -- Method Buttons
     local method1Btn = Instance.new("TextButton")
     method1Btn.Size = UDim2.new(0.9, 0, 0, 70)
     method1Btn.Position = UDim2.new(0.05, 0, 0.12, 0)
@@ -411,9 +346,7 @@ local function createMainUI()
     method6Corner.CornerRadius = UDim.new(0, 12)
     method6Corner.Parent = method6Btn
     
-    -- ============================================
-    -- الوظائف
-    -- ============================================
+    -- ========== الأحداث ==========
     gamepassTabBtn.MouseButton1Click:Connect(function()
         gamepassTabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
         buyTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
@@ -436,14 +369,6 @@ local function createMainUI()
         for _, child in pairs(dropdownList:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
         end
-        
-        local layout = dropdownList:FindFirstChildWhichIsA("UIListLayout")
-        if not layout then
-            layout = Instance.new("UIListLayout")
-            layout.Padding = UDim.new(0, 2)
-            layout.Parent = dropdownList
-        end
-        
         for i, gp in ipairs(REAL_GAMEPASSES) do
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, -10, 0, 45)
@@ -465,16 +390,13 @@ local function createMainUI()
                 dropdownList.Visible = false
             end)
         end
+        dropdownList.CanvasSize = UDim2.new(0, 0, 0, #REAL_GAMEPASSES * 48)
     end
     
     selectBtn.MouseButton1Click:Connect(function()
         if SELECTED_ID then
-            dropdownBtn.Text = "✅ " .. SELECTED_NAME .. " [SELECTED]"
-            task.delay(1, function()
-                if dropdownBtn.Text ~= "📦 Loading Gamepasses..." then
-                    -- keep the text
-                end
-            end)
+            selectBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            task.delay(0.5, function() selectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 180) end)
         end
     end)
     
@@ -519,8 +441,8 @@ local function createMainUI()
     local function drag(input)
         if dragData.dragging then
             local delta = Vector2.new(input.Position.X, input.Position.Y) - dragData.startMousePos
-            local newX = math.clamp(dragData.startPos.X.Offset + delta.X, -200, UDim.new(1, 0).X.Offset - 200)
-            local newY = math.clamp(dragData.startPos.Y.Offset + delta.Y, -100, UDim.new(1, 0).Y.Offset - 100)
+            local newX = dragData.startPos.X.Offset + delta.X
+            local newY = dragData.startPos.Y.Offset + delta.Y
             mainFrame.Position = UDim2.new(0, newX, 0, newY)
         end
     end
@@ -539,8 +461,6 @@ local function createMainUI()
     refreshDropdown()
     if #REAL_GAMEPASSES > 0 then
         dropdownBtn.Text = "📦 Select Gamepass (" .. #REAL_GAMEPASSES .. " available)"
-    else
-        dropdownBtn.Text = "⚠️ No Gamepasses Found"
     end
     AnalyzePurchaseRemotes()
     
@@ -548,6 +468,74 @@ local function createMainUI()
 end
 
 -- ================================================
--- 🚀 بدء التشغيل
+-- 🌈 شاشة الترحيب
+-- ================================================
+local function showWelcomeScreen()
+    local playerGui = plr:FindFirstChild("PlayerGui")
+    if not playerGui then
+        playerGui = Instance.new("PlayerGui")
+        playerGui.Parent = plr
+    end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "MozerWelcome"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+    
+    local background = Instance.new("Frame")
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    background.BackgroundTransparency = 0
+    background.Parent = screenGui
+    
+    local mozerText = Instance.new("TextLabel")
+    mozerText.Size = UDim2.new(1, 0, 0.3, 0)
+    mozerText.Position = UDim2.new(0, 0, 0.3, 0)
+    mozerText.BackgroundTransparency = 1
+    mozerText.Text = "MOZER"
+    mozerText.TextSize = 50
+    mozerText.TextScaled = true
+    mozerText.Font = Enum.Font.GothamBold
+    mozerText.TextColor3 = rainbowColors[1]
+    mozerText.Parent = background
+    
+    local welcomeText = Instance.new("TextLabel")
+    welcomeText.Size = UDim2.new(1, 0, 0.15, 0)
+    welcomeText.Position = UDim2.new(0, 0, 0.55, 0)
+    welcomeText.BackgroundTransparency = 1
+    welcomeText.Text = "welcome"
+    welcomeText.TextSize = 35
+    welcomeText.TextScaled = true
+    welcomeText.Font = Enum.Font.Gotham
+    welcomeText.TextColor3 = rainbowColors[4]
+    welcomeText.Parent = background
+    
+    -- تأثير قوس قزح
+    task.spawn(function()
+        for i = 1, 25 do
+            task.wait(0.12)
+            if i % 3 == 0 then
+                updateRainbow(mozerText)
+                updateRainbow(welcomeText)
+            end
+        end
+    end)
+    
+    -- انتظار 3 ثواني ثم اختفاء
+    task.wait(3)
+    
+    -- اختفاء تدريجي
+    TweenService:Create(background, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(mozerText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    TweenService:Create(welcomeText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    task.wait(0.3)
+    screenGui:Destroy()
+    
+    -- إنشاء الواجهة الرئيسية
+    createMainUI()
+end
+
+-- ================================================
+-- 🚀 التشغيل
 -- ================================================
 showWelcomeScreen()
