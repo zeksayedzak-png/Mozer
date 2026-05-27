@@ -1,6 +1,6 @@
 -- ================================================
--- 🎯 MOZER - WORKING MOBILE UI
--- ⚡ METHOD 1 & 6 | PRECISION | ZERO NOISE
+-- 🎯 MOZER - FAST MOBILE UI
+-- ⚡ METHOD 1 & 6 | DRAGGABLE | FAST LOAD
 -- ================================================
 
 local Players = game:GetService("Players")
@@ -20,7 +20,9 @@ local SELECTED_NAME = nil
 local TARGET_REMOTES = {}
 local isMinimized = false
 local mainFrame = nil
-local dragData = { dragging = false, startPos = nil, startMousePos = nil }
+local dragging = false
+local dragStart = nil
+local frameStart = nil
 
 -- ================================================
 -- 🌈 ألوان قوس قزح
@@ -44,25 +46,41 @@ local function updateRainbow(guiObject)
 end
 
 -- ================================================
--- 📊 جلب Gamepasses
+-- 📊 جلب Gamepasses (سريع + بدون تأخير)
 -- ================================================
 local function FetchGamepasses()
-    local url = "https://economy.roblox.com/v1/games/" .. gameId .. "/gamepasses?limit=100"
-    local success, response = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(url))
-    end)
-    if success and response and response.data then
-        REAL_GAMEPASSES = {}
-        for _, gp in ipairs(response.data) do
-            table.insert(REAL_GAMEPASSES, {id = gp.id, name = gp.name, price = gp.price or 0})
+    -- مجرد محاكاة سريعة، البيانات الحقيقية تجلب في الخلفية
+    REAL_GAMEPASSES = {}
+    
+    -- جلب حقيقي من API (يعمل في الخلفية بدون تعليق الواجهة)
+    task.spawn(function()
+        local url = "https://economy.roblox.com/v1/games/" .. gameId .. "/gamepasses?limit=50"
+        local success, response = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet(url))
+        end)
+        if success and response and response.data then
+            for _, gp in ipairs(response.data) do
+                table.insert(REAL_GAMEPASSES, {id = gp.id, name = gp.name, price = gp.price or 0})
+            end
+            -- تحديث الواجهة بعد التحميل
+            if dropdownBtn then
+                dropdownBtn.Text = "📦 " .. #REAL_GAMEPASSES .. " Gamepasses available"
+                refreshDropdown()
+            end
+        else
+            if dropdownBtn then
+                dropdownBtn.Text = "⚠️ No Gamepasses found"
+            end
         end
-        return true
-    end
-    return false
+    end)
+    
+    -- نضيف بعض البيانات الوهمية عشان الواجهة ما تظهر فاضية
+    table.insert(REAL_GAMEPASSES, {id = 0, name = "Loading...", price = 0})
+    return true
 end
 
 -- ================================================
--- 🔍 تحليل الـ Remotes
+-- 🔍 تحليل الـ Remotes (سريع)
 -- ================================================
 local function AnalyzePurchaseRemotes()
     TARGET_REMOTES = {}
@@ -81,7 +99,7 @@ end
 -- ⚔️ METHOD 1
 -- ================================================
 local function Method1_ClientBypass()
-    if not SELECTED_ID then return false end
+    if not SELECTED_ID or SELECTED_ID == 0 then return false end
     local payload = {
         gamepassId = SELECTED_ID,
         playerId = plr.UserId,
@@ -101,7 +119,7 @@ end
 -- ⚔️ METHOD 6
 -- ================================================
 local function Method6_RemoteReplay()
-    if not SELECTED_ID then return false end
+    if not SELECTED_ID or SELECTED_ID == 0 then return false end
     local learnedPayload = {
         gamepassId = SELECTED_ID,
         playerId = plr.UserId,
@@ -121,10 +139,11 @@ local function Method6_RemoteReplay()
 end
 
 -- ================================================
--- 🎨 إنشاء الواجهة الرئيسية
+-- 🎨 إنشاء الواجهة الرئيسية (مستطيل + قابل للسحب)
 -- ================================================
+local dropdownBtn = nil
+
 local function createMainUI()
-    -- التأكد من وجود PlayerGui
     local playerGui = plr:FindFirstChild("PlayerGui")
     if not playerGui then
         playerGui = Instance.new("PlayerGui")
@@ -136,10 +155,10 @@ local function createMainUI()
     screenGui.ResetOnSpawn = false
     screenGui.Parent = playerGui
     
-    -- المربع الرئيسي
+    -- المربع الرئيسي (مستطيل - width أكبر من height)
     mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 350, 0, 500)
-    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+    mainFrame.Size = UDim2.new(0, 400, 0, 520)  -- مستطيل: عرض 400، ارتفاع 520
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -260)
     mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     mainFrame.BackgroundTransparency = 0
     mainFrame.BorderSizePixel = 0
@@ -150,9 +169,9 @@ local function createMainUI()
     corner.CornerRadius = UDim.new(0, 20)
     corner.Parent = mainFrame
     
-    -- شريط العنوان
+    -- شريط العنوان (قابل للسحب من هنا)
     local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 45)
+    titleBar.Size = UDim2.new(1, 0, 0, 50)
     titleBar.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
     titleBar.BorderSizePixel = 0
     titleBar.Parent = mainFrame
@@ -161,10 +180,21 @@ local function createMainUI()
     titleCorner.CornerRadius = UDim.new(0, 20)
     titleCorner.Parent = titleBar
     
+    -- أيقونة سحب (三条 خط)
+    local dragIcon = Instance.new("TextLabel")
+    dragIcon.Size = UDim2.new(0, 40, 1, 0)
+    dragIcon.Position = UDim2.new(0, 10, 0, 0)
+    dragIcon.BackgroundTransparency = 1
+    dragIcon.Text = "☰"
+    dragIcon.TextSize = 25
+    dragIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
+    dragIcon.Font = Enum.Font.Gotham
+    dragIcon.Parent = titleBar
+    
     -- نص Be Mozer
     local titleText = Instance.new("TextLabel")
-    titleText.Size = UDim2.new(0.7, 0, 1, 0)
-    titleText.Position = UDim2.new(0, 15, 0, 0)
+    titleText.Size = UDim2.new(0.5, 0, 1, 0)
+    titleText.Position = UDim2.new(0, 55, 0, 0)
     titleText.BackgroundTransparency = 1
     titleText.Text = "Be Mozer"
     titleText.TextSize = 22
@@ -175,8 +205,8 @@ local function createMainUI()
     
     -- زر X
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 40, 0, 40)
-    closeBtn.Position = UDim2.new(1, -50, 0, 2)
+    closeBtn.Size = UDim2.new(0, 45, 0, 45)
+    closeBtn.Position = UDim2.new(1, -55, 0, 2)
     closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     closeBtn.Text = "✕"
     closeBtn.TextSize = 24
@@ -190,18 +220,18 @@ local function createMainUI()
     
     -- منطقة المحتوى
     local contentFrame = Instance.new("Frame")
-    contentFrame.Size = UDim2.new(1, -20, 1, -65)
-    contentFrame.Position = UDim2.new(0, 10, 0, 55)
+    contentFrame.Size = UDim2.new(1, -20, 1, -70)
+    contentFrame.Position = UDim2.new(0, 10, 0, 60)
     contentFrame.BackgroundTransparency = 1
     contentFrame.Parent = mainFrame
     
     -- زر التصغير (دائرة M)
     local miniBtn = Instance.new("TextButton")
-    miniBtn.Size = UDim2.new(0, 70, 0, 70)
-    miniBtn.Position = UDim2.new(0.5, -35, 0.5, -35)
+    miniBtn.Size = UDim2.new(0, 80, 0, 80)
+    miniBtn.Position = UDim2.new(0.5, -40, 0.5, -40)
     miniBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     miniBtn.Text = "M"
-    miniBtn.TextSize = 40
+    miniBtn.TextSize = 45
     miniBtn.TextColor3 = rainbowColors[1]
     miniBtn.Font = Enum.Font.GothamBold
     miniBtn.Visible = false
@@ -220,9 +250,11 @@ local function createMainUI()
         end
     end)
     
+    -- ============================================
     -- تبويبات
+    -- ============================================
     local tabFrame = Instance.new("Frame")
-    tabFrame.Size = UDim2.new(1, 0, 0, 45)
+    tabFrame.Size = UDim2.new(1, 0, 0, 50)
     tabFrame.Position = UDim2.new(0, 0, 0, 0)
     tabFrame.BackgroundTransparency = 1
     tabFrame.Parent = contentFrame
@@ -257,23 +289,25 @@ local function createMainUI()
     
     -- محتوى Gamepass Tab
     local gamepassContent = Instance.new("Frame")
-    gamepassContent.Size = UDim2.new(1, 0, 1, -55)
-    gamepassContent.Position = UDim2.new(0, 0, 0, 55)
+    gamepassContent.Size = UDim2.new(1, 0, 1, -60)
+    gamepassContent.Position = UDim2.new(0, 0, 0, 60)
     gamepassContent.BackgroundTransparency = 1
     gamepassContent.Parent = contentFrame
     
     -- محتوى Buy Tab
     local buyContent = Instance.new("Frame")
-    buyContent.Size = UDim2.new(1, 0, 1, -55)
-    buyContent.Position = UDim2.new(0, 0, 0, 55)
+    buyContent.Size = UDim2.new(1, 0, 1, -60)
+    buyContent.Position = UDim2.new(0, 0, 0, 60)
     buyContent.BackgroundTransparency = 1
     buyContent.Visible = false
     buyContent.Parent = contentFrame
     
-    -- Dropdown
-    local dropdownBtn = Instance.new("TextButton")
+    -- ============================================
+    -- صفحة Gamepass
+    -- ============================================
+    dropdownBtn = Instance.new("TextButton")
     dropdownBtn.Size = UDim2.new(0.9, 0, 0, 55)
-    dropdownBtn.Position = UDim2.new(0.05, 0, 0.08, 0)
+    dropdownBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
     dropdownBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     dropdownBtn.Text = "📦 Loading Gamepasses..."
     dropdownBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -286,8 +320,8 @@ local function createMainUI()
     dropdownCorner.Parent = dropdownBtn
     
     local dropdownList = Instance.new("ScrollingFrame")
-    dropdownList.Size = UDim2.new(0.9, 0, 0, 250)
-    dropdownList.Position = UDim2.new(0.05, 0, 0.28, 0)
+    dropdownList.Size = UDim2.new(0.9, 0, 0, 280)
+    dropdownList.Position = UDim2.new(0.05, 0, 0.22, 0)
     dropdownList.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
     dropdownList.BorderSizePixel = 0
     dropdownList.Visible = false
@@ -299,13 +333,13 @@ local function createMainUI()
     listCorner.Parent = dropdownList
     
     local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, 2)
+    listLayout.Padding = UDim.new(0, 3)
     listLayout.Parent = dropdownList
     
     -- زر Select
     local selectBtn = Instance.new("TextButton")
     selectBtn.Size = UDim2.new(0.9, 0, 0, 50)
-    selectBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+    selectBtn.Position = UDim2.new(0.05, 0, 0.78, 0)
     selectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 180)
     selectBtn.Text = "✅ SELECT"
     selectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -317,10 +351,12 @@ local function createMainUI()
     selectCorner.CornerRadius = UDim.new(0, 12)
     selectCorner.Parent = selectBtn
     
-    -- Method Buttons
+    -- ============================================
+    -- صفحة Buy
+    -- ============================================
     local method1Btn = Instance.new("TextButton")
-    method1Btn.Size = UDim2.new(0.9, 0, 0, 70)
-    method1Btn.Position = UDim2.new(0.05, 0, 0.12, 0)
+    method1Btn.Size = UDim2.new(0.9, 0, 0, 80)
+    method1Btn.Position = UDim2.new(0.05, 0, 0.1, 0)
     method1Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
     method1Btn.Text = "🕵️ METHOD 1\nClient Bypass"
     method1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -333,7 +369,7 @@ local function createMainUI()
     method1Corner.Parent = method1Btn
     
     local method6Btn = Instance.new("TextButton")
-    method6Btn.Size = UDim2.new(0.9, 0, 0, 70)
+    method6Btn.Size = UDim2.new(0.9, 0, 0, 80)
     method6Btn.Position = UDim2.new(0.05, 0, 0.45, 0)
     method6Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
     method6Btn.Text = "🔄 METHOD 6\nRemote Replay"
@@ -346,7 +382,9 @@ local function createMainUI()
     method6Corner.CornerRadius = UDim.new(0, 12)
     method6Corner.Parent = method6Btn
     
-    -- ========== الأحداث ==========
+    -- ============================================
+    -- الأحداث
+    -- ============================================
     gamepassTabBtn.MouseButton1Click:Connect(function()
         gamepassTabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
         buyTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
@@ -365,43 +403,45 @@ local function createMainUI()
         dropdownList.Visible = not dropdownList.Visible
     end)
     
-    local function refreshDropdown()
+    function refreshDropdown()
         for _, child in pairs(dropdownList:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
         end
         for i, gp in ipairs(REAL_GAMEPASSES) do
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, -10, 0, 45)
-            btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-            btn.Text = gp.name .. " [" .. gp.price .. "]"
-            btn.TextColor3 = Color3.fromRGB(220, 220, 220)
-            btn.Font = Enum.Font.Gotham
-            btn.TextSize = 13
-            btn.Parent = dropdownList
-            
-            local btnCorner = Instance.new("UICorner")
-            btnCorner.CornerRadius = UDim.new(0, 8)
-            btnCorner.Parent = btn
-            
-            btn.MouseButton1Click:Connect(function()
-                SELECTED_ID = gp.id
-                SELECTED_NAME = gp.name
-                dropdownBtn.Text = "✅ " .. gp.name .. " [" .. gp.price .. "]"
-                dropdownList.Visible = false
-            end)
+            if gp.id ~= 0 then  -- نتخطى الـ Loading الوهمي
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, -10, 0, 50)
+                btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+                btn.Text = gp.name .. " [" .. gp.price .. "]"
+                btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+                btn.Font = Enum.Font.Gotham
+                btn.TextSize = 13
+                btn.Parent = dropdownList
+                
+                local btnCorner = Instance.new("UICorner")
+                btnCorner.CornerRadius = UDim.new(0, 8)
+                btnCorner.Parent = btn
+                
+                btn.MouseButton1Click:Connect(function()
+                    SELECTED_ID = gp.id
+                    SELECTED_NAME = gp.name
+                    dropdownBtn.Text = "✅ " .. gp.name .. " [" .. gp.price .. "]"
+                    dropdownList.Visible = false
+                end)
+            end
         end
-        dropdownList.CanvasSize = UDim2.new(0, 0, 0, #REAL_GAMEPASSES * 48)
+        dropdownList.CanvasSize = UDim2.new(0, 0, 0, #REAL_GAMEPASSES * 55)
     end
     
     selectBtn.MouseButton1Click:Connect(function()
-        if SELECTED_ID then
+        if SELECTED_ID and SELECTED_ID ~= 0 then
             selectBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
             task.delay(0.5, function() selectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 180) end)
         end
     end)
     
     method1Btn.MouseButton1Click:Connect(function()
-        if SELECTED_ID then
+        if SELECTED_ID and SELECTED_ID ~= 0 then
             Method1_ClientBypass()
             method1Btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
             task.delay(1, function() method1Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 40) end)
@@ -409,7 +449,7 @@ local function createMainUI()
     end)
     
     method6Btn.MouseButton1Click:Connect(function()
-        if SELECTED_ID then
+        if SELECTED_ID and SELECTED_ID ~= 0 then
             Method6_RemoteReplay()
             method6Btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
             task.delay(1, function() method6Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 40) end)
@@ -429,40 +469,43 @@ local function createMainUI()
         miniBtn.Visible = false
     end)
     
-    -- السحب
-    local function startDrag(input)
+    -- ============================================
+    -- نظام السحب (يعمل باللمس)
+    -- ============================================
+    local function onDragStart(input)
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragData.dragging = true
-            dragData.startPos = mainFrame.Position
-            dragData.startMousePos = Vector2.new(input.Position.X, input.Position.Y)
+            dragging = true
+            dragStart = Vector2.new(input.Position.X, input.Position.Y)
+            frameStart = mainFrame.Position
         end
     end
     
-    local function drag(input)
-        if dragData.dragging then
-            local delta = Vector2.new(input.Position.X, input.Position.Y) - dragData.startMousePos
-            local newX = dragData.startPos.X.Offset + delta.X
-            local newY = dragData.startPos.Y.Offset + delta.Y
+    local function onDragMove(input)
+        if dragging then
+            local delta = Vector2.new(input.Position.X, input.Position.Y) - dragStart
+            local newX = frameStart.X.Offset + delta.X
+            local newY = frameStart.Y.Offset + delta.Y
             mainFrame.Position = UDim2.new(0, newX, 0, newY)
         end
     end
     
-    local function stopDrag()
-        dragData.dragging = false
+    local function onDragEnd()
+        dragging = false
     end
     
-    titleBar.InputBegan:Connect(startDrag)
-    titleBar.InputChanged:Connect(drag)
-    titleBar.InputEnded:Connect(stopDrag)
+    -- السحب من شريط العنوان أو الأيقونة
+    titleBar.InputBegan:Connect(onDragStart)
+    titleBar.InputChanged:Connect(onDragMove)
+    titleBar.InputEnded:Connect(onDragEnd)
+    dragIcon.InputBegan:Connect(onDragStart)
+    dragIcon.InputChanged:Connect(onDragMove)
+    dragIcon.InputEnded:Connect(onDragEnd)
     
-    -- تحميل البيانات
-    FetchGamepasses()
-    task.wait(1)
-    refreshDropdown()
-    if #REAL_GAMEPASSES > 0 then
-        dropdownBtn.Text = "📦 Select Gamepass (" .. #REAL_GAMEPASSES .. " available)"
-    end
+    -- تحليل الـ Remotes
     AnalyzePurchaseRemotes()
+    
+    -- جلب Gamepasses
+    FetchGamepasses()
     
     print("✅ MOZER UI Ready")
 end
@@ -521,17 +564,14 @@ local function showWelcomeScreen()
         end
     end)
     
-    -- انتظار 3 ثواني ثم اختفاء
     task.wait(3)
     
-    -- اختفاء تدريجي
     TweenService:Create(background, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
     TweenService:Create(mozerText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
     TweenService:Create(welcomeText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
     task.wait(0.3)
     screenGui:Destroy()
     
-    -- إنشاء الواجهة الرئيسية
     createMainUI()
 end
 
