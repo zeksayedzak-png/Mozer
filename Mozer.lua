@@ -1,387 +1,203 @@
--- ================================================
--- 🎯 MOZER - INFO DISPLAY + PRECISION METHODS
--- ⚡ Shows Gamepasses & Remotes | Method 1 & 6
--- ================================================
+-- إنشاء الـ ScreenGui الرئيسي
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local MinimizedFrame = Instance.new("Frame")
+local TopBar = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local CloseBtn = Instance.new("TextButton")
+local ContentFrame = Instance.new("Frame")
+local TabsFrame = Instance.new("Frame")
+local GamepassBtn = Instance.new("TextButton")
+local BuyBtn = Instance.new("TextButton")
+local Separator = Instance.new("Frame")
+local DragHandle = Instance.new("Frame")
+local MText = Instance.new("TextLabel")
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- إعدادات الـ ScreenGui
+ScreenGui.Name = "MozerHub"
+ScreenGui.Parent = game.CoreGui -- يعمل على Delta
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local Players = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
-local HttpService = game:GetService("HttpService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local plr = Players.LocalPlayer
-local gameId = game.PlaceId
+-- 1. رسالة الترحيب (Mozer Welcome)
+local function ShowWelcome()
+    local WelcomeGui = Instance.new("ScreenGui", game.CoreGui)
+    
+    local MozerLabel = Instance.new("TextLabel", WelcomeGui)
+    MozerLabel.Size = UDim2.new(1, 0, 0.1, 0)
+    MozerLabel.Position = UDim2.new(0, 0, 0.4, 0)
+    MozerLabel.BackgroundTransparency = 1
+    MozerLabel.Text = "Mozer"
+    MozerLabel.TextSize = 60
+    MozerLabel.Font = Enum.Font.FredokaOne
 
-print("🎯 MOZER - Loading with Info Display...")
+    local WelcomeLabel = Instance.new("TextLabel", WelcomeGui)
+    WelcomeLabel.Size = UDim2.new(1, 0, 0.1, 0)
+    WelcomeLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    WelcomeLabel.BackgroundTransparency = 1
+    WelcomeLabel.Text = "Welcome"
+    WelcomeLabel.TextSize = 40
+    WelcomeLabel.Font = Enum.Font.FredokaOne
 
--- ================================================
--- 📊 المتغيرات
--- ================================================
-local REAL_GAMEPASSES = {}      -- من API الحقيقي
-local SELECTED_ID = nil
-local SELECTED_NAME = nil
-local TARGET_REMOTES = {}       -- الـ Remotes اللي تخص الشراء
-local ALL_REMOTES = {}          -- جميع الـ Remotes في اللعبة
-
--- ================================================
--- 📡 جلب Gamepasses الحقيقية من API
--- ================================================
-local function FetchRealGamepasses()
-    local url = "https://economy.roblox.com/v1/games/" .. gameId .. "/gamepasses?limit=100"
-    local success, response = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(url))
+    -- تأثير قوس قزح للترحيب
+    spawn(function()
+        while WelcomeGui.Parent do
+            local hue = tick() % 5 / 5
+            local color = Color3.fromHSV(hue, 1, 1)
+            MozerLabel.TextColor3 = color
+            WelcomeLabel.TextColor3 = color
+            task.wait()
+        end
     end)
-    
-    if success and response and response.data then
-        REAL_GAMEPASSES = {}
-        for _, gp in ipairs(response.data) do
-            table.insert(REAL_GAMEPASSES, {
-                id = gp.id,
-                name = gp.name,
-                price = gp.price or 0,
-                image = gp.imageUrl or ""
-            })
-        end
-        return true, "✅ Loaded " .. #REAL_GAMEPASSES .. " Gamepasses"
-    else
-        -- إذا فشل، نعرض رسالة خطأ
-        return false, "❌ Failed to load Gamepasses from API"
-    end
+
+    task.wait(3) -- تظهر لمدة 3 ثواني
+    WelcomeGui:Destroy()
 end
 
--- ================================================
--- 🔍 تحليل جميع الـ Remotes في اللعبة
--- ================================================
-local function AnalyzeAllRemotes()
-    ALL_REMOTES = {}
-    TARGET_REMOTES = {}
-    
-    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            local name = obj.Name:lower()
-            local fullName = obj:GetFullName()
-            
-            -- تخزين جميع الـ Remotes
-            table.insert(ALL_REMOTES, {
-                name = obj.Name,
-                className = obj.ClassName,
-                path = fullName
-            })
-            
-            -- تخزين الـ Remotes المتعلقة بالشراء بشكل خاص
-            if name:find("purchase") or name:find("buy") or name:find("gamepass") or name:find("pass") or name:find("shop") or name:find("product") then
-                table.insert(TARGET_REMOTES, obj)
-            end
-        end
+-- 2. إعداد الواجهة الكبيرة (MainFrame)
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Visible = false
+
+local Corner = Instance.new("UICorner", MainFrame)
+Corner.CornerRadius = UDim.new(0, 10)
+
+-- العنوان (Be Mozer)
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0.05, 0, 0.05, 0)
+Title.Size = UDim2.new(0, 100, 0, 20)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Be Mozer"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- زر الإغلاق (X)
+CloseBtn.Name = "CloseBtn"
+CloseBtn.Parent = MainFrame
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+CloseBtn.Position = UDim2.new(0.9, -5, 0.05, 0)
+CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 14
+local CloseCorner = Instance.new("UICorner", CloseBtn)
+CloseCorner.CornerRadius = UDim.new(1, 0)
+
+-- الخط الفاصل السفلي
+Separator.Name = "Separator"
+Separator.Parent = MainFrame
+Separator.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Separator.BorderSizePixel = 0
+Separator.Position = UDim2.new(0.05, 0, 0.75, 0)
+Separator.Size = UDim2.new(0.9, 0, 0, 2)
+
+-- أزرار الصفحات (Gamepass & Buy)
+GamepassBtn.Parent = MainFrame
+GamepassBtn.Size = UDim2.new(0.4, 0, 0, 25)
+GamepassBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
+GamepassBtn.Text = "Gamepass"
+GamepassBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+GamepassBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+BuyBtn.Parent = MainFrame
+BuyBtn.Size = UDim2.new(0.4, 0, 0, 25)
+BuyBtn.Position = UDim2.new(0.55, 0, 0.82, 0)
+BuyBtn.Text = "Buy"
+BuyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+BuyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- مقبض السحب السفلي (الأبيض الشفاف)
+DragHandle.Parent = MainFrame
+DragHandle.Size = UDim2.new(0.3, 0, 0, 5)
+DragHandle.Position = UDim2.new(0.35, 0, 0.95, 0)
+DragHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+DragHandle.BackgroundTransparency = 0.7
+Instance.new("UICorner", DragHandle)
+
+-- 3. المربع الصغير (MinimizedFrame)
+MinimizedFrame.Name = "MinimizedFrame"
+MinimizedFrame.Parent = ScreenGui
+MinimizedFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MinimizedFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+MinimizedFrame.Size = UDim2.new(0, 50, 0, 50)
+MinimizedFrame.Visible = false
+local MinCorner = Instance.new("UICorner", MinimizedFrame)
+MinCorner.CornerRadius = UDim.new(0, 12)
+
+MText.Parent = MinimizedFrame
+MText.Size = UDim2.new(1, 0, 1, 0)
+MText.Text = "M"
+MText.Font = Enum.Font.FredokaOne
+MText.TextSize = 30
+MText.BackgroundTransparency = 1
+
+-- تأثير قوس قزح لحرف M
+spawn(function()
+    while true do
+        local hue = tick() % 5 / 5
+        MText.TextColor3 = Color3.fromHSV(hue, 1, 1)
+        task.wait()
     end
-    
-    return #TARGET_REMOTES, #ALL_REMOTES
-end
-
--- ================================================
--- ⚔️ METHOD 1 (دقيق)
--- ================================================
-local function Method1_ClientBypass()
-    if not SELECTED_ID then 
-        Rayfield:Notify({ Title = "Error", Content = "Select a Gamepass first!", Duration = 2 })
-        return false 
-    end
-    
-    local payload = {
-        gamepassId = SELECTED_ID,
-        playerId = plr.UserId,
-        timestamp = os.time(),
-        purchaseType = "Gamepass",
-        receipt = HttpService:GenerateGUID(false)
-    }
-    
-    -- إرسال فقط للـ Remotes المنطقية (مرة واحدة)
-    for _, remote in pairs(TARGET_REMOTES) do
-        pcall(function() remote:FireServer(payload) end)
-        pcall(function() remote:FireServer(SELECTED_ID) end)
-    end
-    
-    -- محاولة مباشرة
-    pcall(function() MarketplaceService:PromptProductPurchase(plr, SELECTED_ID) end)
-    
-    return true
-end
-
--- ================================================
--- ⚔️ METHOD 6 (دقيق)
--- ================================================
-local function Method6_RemoteReplay()
-    if not SELECTED_ID then 
-        Rayfield:Notify({ Title = "Error", Content = "Select a Gamepass first!", Duration = 2 })
-        return false 
-    end
-    
-    local learnedPayload = {
-        gamepassId = SELECTED_ID,
-        playerId = plr.UserId,
-        action = "purchase",
-        version = "2.0",
-        signature = HttpService:GenerateGUID(false)
-    }
-    
-    for _, remote in pairs(TARGET_REMOTES) do
-        pcall(function()
-            remote:FireServer(learnedPayload)
-            remote:FireServer({learnedPayload})
-            remote:FireServer(SELECTED_ID, learnedPayload)
-        end)
-        task.wait(0.05)
-    end
-    
-    return true
-end
-
--- ================================================
--- 🎨 RAYFIELD UI (مع معلومات إضافية)
--- ================================================
-local Window = Rayfield:CreateWindow({
-    Name = "MOZER | Info Display",
-    LoadingTitle = "MOZER - Information Mode",
-    LoadingSubtitle = "Analyzing Game...",
-    ConfigurationSaving = { Enabled = false },
-    KeySystem = false
-})
-
--- ================================================
--- 📋 TAB 1: INFORMATION (معلومات اللعبة)
--- ================================================
-local InfoTab = Window:CreateTab("📊 Info", 4483362458)
-
--- معلومات عامة
-InfoTab:CreateParagraph({
-    Title = "🎮 Game Information",
-    Content = "Game ID: " .. gameId .. "\nPlayer: " .. plr.Name .. "\nStatus: Analyzing..."
-})
-
--- معلومات Gamepasses
-local GamepassInfo = InfoTab:CreateParagraph({
-    Title = "📦 REAL GAMEPASSES (from Roblox API)",
-    Content = "Loading..."
-})
-
--- معلومات Remotes
-local RemotesInfo = InfoTab:CreateParagraph({
-    Title = "🔌 REMOTES ANALYSIS",
-    Content = "Loading..."
-})
-
--- قائمة مفصلة بالـ Remotes
-local RemoteList = InfoTab:CreateParagraph({
-    Title = "📋 Purchase-Related Remotes",
-    Content = "Loading..."
-})
-
--- زر التحديث
-InfoTab:CreateButton({
-    Name = "🔄 Refresh Information",
-    Callback = function()
-        Rayfield:Notify({ Title = "Refreshing", Content = "Loading game data...", Duration = 1 })
-        
-        -- جلب Gamepasses
-        local success, msg = FetchRealGamepasses()
-        if success then
-            local gpText = ""
-            for i, gp in ipairs(REAL_GAMEPASSES) do
-                gpText = gpText .. i .. ". " .. gp.name .. " [" .. gp.price .. " Robux]\n"
-            end
-            if gpText == "" then gpText = "No Gamepasses found in this game" end
-            GamepassInfo:Set(gpText)
-        else
-            GamepassInfo:Set(msg)
-        end
-        
-        -- تحليل Remotes
-        local targetCount, allCount = AnalyzeAllRemotes()
-        RemotesInfo:Set("Total Remotes in game: " .. allCount .. "\nPurchase-related Remotes: " .. targetCount)
-        
-        -- قائمة الـ Remotes التفصيلية
-        local remoteText = ""
-        for i, remote in ipairs(TARGET_REMOTES) do
-            remoteText = remoteText .. i .. ". " .. remote.Name .. " (" .. remote.ClassName .. ")\n"
-        end
-        if remoteText == "" then remoteText = "No purchase-related Remotes found" end
-        RemoteList:Set(remoteText)
-        
-        Rayfield:Notify({ Title = "Done", Content = "Game data loaded", Duration = 1 })
-    end,
-})
-
--- ================================================
--- 📋 TAB 2: GAMEPASS (اختيار الـ Gamepass)
--- ================================================
-local GamepassTab = Window:CreateTab("🎮 Gamepass", 4483362458)
-
-local GamepassDropdown = GamepassTab:CreateDropdown({
-    Name = "Select Real Gamepass",
-    Options = {"Loading..."},
-    CurrentOption = {"Loading..."},
-    MultipleOptions = false,
-    Flag = "GamepassDropdown",
-    Callback = function(Option)
-        local selectedName = Option[1]
-        for _, gp in ipairs(REAL_GAMEPASSES) do
-            local displayName = gp.name .. " [" .. gp.price .. "]"
-            if displayName == selectedName then
-                SELECTED_ID = gp.id
-                SELECTED_NAME = gp.name
-                Rayfield:Notify({ Title = "🎯 Target Locked", Content = gp.name, Duration = 2 })
-                break
-            end
-        end
-    end,
-})
-
-GamepassTab:CreateButton({
-    Name = "📡 Fetch Real Gamepasses",
-    Callback = function()
-        Rayfield:Notify({ Title = "Loading", Content = "Fetching from Roblox API...", Duration = 1 })
-        local success, msg = FetchRealGamepasses()
-        if success then
-            local options = {}
-            for _, gp in ipairs(REAL_GAMEPASSES) do
-                table.insert(options, gp.name .. " [" .. gp.price .. "]")
-            end
-            if #options > 0 then
-                GamepassDropdown:Refresh(options)
-                Rayfield:Notify({ Title = "✅ Loaded", Content = #REAL_GAMEPASSES .. " Gamepasses found", Duration = 2 })
-            else
-                GamepassDropdown:Refresh({"No Gamepasses Found"})
-                Rayfield:Notify({ Title = "⚠️", Content = "No Gamepasses in this game", Duration = 2 })
-            end
-        else
-            GamepassDropdown:Refresh({"API Error - Check console"})
-            Rayfield:Notify({ Title = "❌ Error", Content = "Failed to fetch Gamepasses", Duration = 2 })
-        end
-    end,
-})
-
--- ================================================
--- 💰 TAB 3: ATTACK (Method 1 & 6)
--- ================================================
-local AttackTab = Window:CreateTab("⚔️ Attack", 4483362458)
-
-AttackTab:CreateParagraph({
-    Title = "🎯 Current Target",
-    Content = "No Gamepass Selected"
-})
-
-AttackTab:CreateButton({
-    Name = "🕵️ METHOD 1 | Client Bypass (Precision)",
-    Callback = function()
-        if not SELECTED_ID then
-            Rayfield:Notify({ Title = "Error", Content = "Select a Gamepass first!", Duration = 2 })
-            return
-        end
-        Method1_ClientBypass()
-        Rayfield:Notify({ Title = "✅ METHOD 1", Content = "Executed on: " .. SELECTED_NAME, Duration = 3 })
-    end,
-})
-
-AttackTab:CreateButton({
-    Name = "🔄 METHOD 6 | Remote Replay (Precision)",
-    Callback = function()
-        if not SELECTED_ID then
-            Rayfield:Notify({ Title = "Error", Content = "Select a Gamepass first!", Duration = 2 })
-            return
-        end
-        Method6_RemoteReplay()
-        Rayfield:Notify({ Title = "✅ METHOD 6", Content = "Executed on: " .. SELECTED_NAME, Duration = 3 })
-    end,
-})
-
-AttackTab:CreateParagraph({
-    Title = "⚡ Precision Mode Features",
-    Content = "• One shot only\n• No spam | No noise\n• Targets only purchase Remotes\n• Real Gamepass data from API"
-})
-
--- ================================================
--- 📋 TAB 4: HELP (شرح)
--- ================================================
-local HelpTab = Window:CreateTab("❓ Help", 4483362458)
-
-HelpTab:CreateParagraph({
-    Title = "How to Use",
-    Content = [[
-1. Go to INFO tab → Click "Refresh Information"
-   - Shows real Gamepasses from Roblox API
-   - Shows all Remotes in the game
-
-2. Go to GAMEPASS tab → Click "Fetch Real Gamepasses"
-   - Select your target from the dropdown
-
-3. Go to ATTACK tab → Click METHOD 1 or METHOD 6
-
-4. Watch the notifications for results
-    ]]
-})
-
-HelpTab:CreateParagraph({
-    Title = "What makes this different?",
-    Content = [[
-✅ Shows REAL Gamepass names and prices
-✅ Shows ALL Remotes in the game
-✅ Shows purchase-related Remotes only
-✅ Method 1: One shot, targeted, no noise
-✅ Method 6: Analyzes Remotes before sending
-    ]]
-})
-
--- ================================================
--- 🚀 التشغيل التلقائي لجلب المعلومات
--- ================================================
-task.spawn(function()
-    -- تحليل الـ Remotes أولاً
-    local targetCount, allCount = AnalyzeAllRemotes()
-    RemotesInfo:Set("Total Remotes in game: " .. allCount .. "\nPurchase-related Remotes: " .. targetCount)
-    
-    -- جلب Gamepasses
-    local success, msg = FetchRealGamepasses()
-    if success then
-        local gpText = ""
-        for i, gp in ipairs(REAL_GAMEPASSES) do
-            gpText = gpText .. i .. ". " .. gp.name .. " [" .. gp.price .. " Robux]\n"
-            if i >= 20 then 
-                gpText = gpText .. "... and " .. (#REAL_GAMEPASSES - 20) .. " more"
-                break
-            end
-        end
-        if gpText == "" then gpText = "No Gamepasses found in this game" end
-        GamepassInfo:Set(gpText)
-        
-        -- تجهيز القائمة المنسدلة
-        local options = {}
-        for _, gp in ipairs(REAL_GAMEPASSES) do
-            table.insert(options, gp.name .. " [" .. gp.price .. "]")
-        end
-        if #options > 0 then
-            GamepassDropdown:Refresh(options)
-        end
-    else
-        GamepassInfo:Set(msg)
-    end
-    
-    -- قائمة الـ Remotes
-    local remoteText = ""
-    for i, remote in ipairs(TARGET_REMOTES) do
-        remoteText = remoteText .. i .. ". " .. remote.Name .. " (" .. remote.ClassName .. ")\n"
-        if i >= 15 then
-            remoteText = remoteText .. "... and " .. (#TARGET_REMOTES - 15) .. " more"
-            break
-        end
-    end
-    if remoteText == "" then remoteText = "No purchase-related Remotes found" end
-    RemoteList:Set(remoteText)
-    
-    print("\n" .. string.rep("=", 50))
-    print("🔥 MOZER - Ready")
-    print("📊 " .. #REAL_GAMEPASSES .. " Gamepasses found")
-    print("🔌 " .. #TARGET_REMOTES .. " purchase Remotes found")
-    print(string.rep("=", 50))
 end)
 
-print("✅ MOZER Loaded - Check the INFO tab to understand the game")
+-- وظيفة سحب الواجهات باللمس (Mobile Drag)
+local function MakeDraggable(frame)
+    local UserInputService = game:GetService("UserInputService")
+    local dragging, dragInput, dragStart, startPos
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+MakeDraggable(MainFrame)
+MakeDraggable(MinimizedFrame)
+
+-- نظام التبديل (فتح/إغلاق)
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    MinimizedFrame.Visible = true
+end)
+
+MinimizedFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        -- إذا ضغطت بسرعة يفتح الواجهة، وإذا سحبت يتحرك
+        local start = tick()
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End and (tick() - start) < 0.2 then
+                MainFrame.Visible = true
+                MinimizedFrame.Visible = false
+            end
+        end)
+    end
+end)
+
+-- تشغيل الترحيب ثم إظهار الواجهة
+spawn(function()
+    ShowWelcome()
+    MainFrame.Visible = true
+end)
