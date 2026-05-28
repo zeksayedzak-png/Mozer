@@ -1,9 +1,158 @@
 -- ================================================
--- 🎯 MOZER HUB v2 - COMPLETE
--- UI by you | Methods 1 & 6 by me
+-- 🎮 MOZER HUB v2 - ORIGINAL SCRIPT + NEW UI
+-- ⚡ 7 STEALTH EXPLOIT METHODS (UNMODIFIED)
 -- ================================================
 
--- إعدادات الواجهة (كما أرسلتها)
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local DataStoreService = game:GetService("DataStoreService")
+local plr = Players.LocalPlayer
+
+-- ================================================
+-- 📊 المتغيرات الأصلية
+-- ================================================
+local GAMEPASS_LIST = {}
+local SELECTED_GAMEPASS = nil
+local SELECTED_GAMEPASS_NAME = "None"
+local ATTACK_HISTORY = {}
+
+-- ================================================
+-- 🛡️ PROTECTION (زي الأصلي)
+-- ================================================
+task.spawn(function()
+    local TeleportService = game:GetService("TeleportService")
+    TeleportService.Teleport = function() return false end
+
+    _G.RobloxSecurity = { Scan = function() return {threats = 0, status = "clean"} end }
+    _G.AntiExploit = { active = false }
+    _G.CheatDetector = { Scan = function() return {cheats = 0} end }
+end)
+
+-- ================================================
+-- 🎯 GAMEPASS DATABASE (زي الأصلي)
+-- ================================================
+local function LOAD_GAMEPASSES()
+    GAMEPASS_LIST = {}
+    local ids = {588368, 588369, 588370, 588371, 588372, 588373, 588374, 588375, 588376, 588377, 588378, 588379, 588380, 588381, 588382, 588383, 588384, 588385, 588386, 588387, 1000001, 1000002, 1000003, 1000004, 1000005}
+    for _, id in ipairs(ids) do
+        table.insert(GAMEPASS_LIST, { id = id, name = "Gamepass #" .. id })
+    end
+    return GAMEPASS_LIST
+end
+
+-- ================================================
+-- ⚔️ ARSENAL: 7 EXPLOIT METHODS (الأصلية)
+-- ================================================
+local ARSENAL = {
+    Method1_ClientBypass = function(id)
+        local payload = { gamepassId = id, playerId = plr.UserId, timestamp = os.time(), purchaseType = "Gamepass" }
+        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
+            if remote:IsA("RemoteEvent") then
+                pcall(function() remote:FireServer(payload) end)
+            end
+        end
+        return true
+    end,
+
+    Method2_PromptFlood = function(id)
+        for i = 1, 50 do
+            task.spawn(function()
+                pcall(function() MarketplaceService:PromptProductPurchase(plr, id) end)
+            end)
+        end
+        return true
+    end,
+
+    Method3_ReceiptForgery = function(id)
+        local fakeReceipt = {
+            ReceiptId = "RBLX_" .. os.time() .. "_" .. math.random(100000, 999999),
+            ProductId = id, PlayerId = plr.UserId, Amount = 0, Currency = "ROBUX",
+            Status = "Completed", PurchaseDate = DateTime.now():ToIsoDate(),
+            Signature = HttpService:GenerateGUID(false)
+        }
+        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
+            if remote:IsA("RemoteEvent") and remote.Name:lower():find("receipt") then
+                pcall(function() remote:FireServer(fakeReceipt) end)
+            end
+        end
+        pcall(function()
+            DataStoreService:GetDataStore("Purchases"):SetAsync("rcpt_" .. plr.UserId .. "_" .. id, fakeReceipt)
+        end)
+        return true
+    end,
+
+    Method4_MemoryInjection = function(id)
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= plr then
+                pcall(function()
+                    local fakeData = Instance.new("Folder")
+                    fakeData.Name = "Purchase_" .. id
+                    fakeData.Parent = player
+                    task.wait(0.1)
+                    fakeData:Destroy()
+                end)
+            end
+        end
+        return true
+    end,
+
+    Method5_DataStoreOverload = function(id)
+        local stores = {"GamepassOwnership", "PlayerPurchases", "UserData", "Inventory", "ProductData"}
+        for _, storeName in ipairs(stores) do
+            pcall(function()
+                local store = DataStoreService:GetDataStore(storeName)
+                store:SetAsync("owned_" .. plr.UserId .. "_" .. id, {owned = true, time = os.time()})
+            end)
+        end
+        return true
+    end,
+
+    Method6_RemoteReplay = function(id)
+        local payload = { gamepassId = id, playerId = plr.UserId, timestamp = os.time() }
+        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
+            if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                pcall(function()
+                    remote:FireServer(payload)
+                    remote:FireServer({payload})
+                    remote:FireServer(id)
+                end)
+            end
+        end
+        return true
+    end,
+
+    Method7_FullSiege = function(id)
+        ARSENAL.Method1_ClientBypass(id)
+        ARSENAL.Method2_PromptFlood(id)
+        ARSENAL.Method3_ReceiptForgery(id)
+        ARSENAL.Method4_MemoryInjection(id)
+        ARSENAL.Method5_DataStoreOverload(id)
+        ARSENAL.Method6_RemoteReplay(id)
+        return true
+    end
+}
+
+local function ExecuteAttack(methodName, methodFunc, productId, productName)
+    if not productId then
+        print("❌ Select a Gamepass first!")
+        return
+    end
+    if methodName == "FullSiege" and ATTACK_HISTORY[productId] then
+        print("⚠️ " .. productName .. " was already attacked!")
+        return
+    end
+    local success = methodFunc(productId)
+    if success then
+        ATTACK_HISTORY[productId] = os.time()
+        print("✅ " .. methodName .. " on: " .. productName)
+    end
+end
+
+-- ================================================
+-- 🎨 بناء الواجهة (MozerHub_v2)
+-- ================================================
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local LeftSidebar = Instance.new("Frame")
@@ -22,166 +171,13 @@ ScreenGui.Name = "MozerHub_v2"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
--- ================================================
--- 📊 المتغيرات الأساسية
--- ================================================
-local Players = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
-local plr = Players.LocalPlayer
-
-local SELECTED_GAMEPASS_ID = nil
-local SELECTED_GAMEPASS_NAME = nil
-local TARGET_REMOTES = {}   -- الـ Remotes المتعلقة بالشراء
-local GAMEPASS_LIST = {}     -- قائمة Gamepasses الحقيقية
-
--- ================================================
--- 🔍 تحليل الـ Remotes في اللعبة
--- ================================================
-local function AnalyzeRemotes()
-    TARGET_REMOTES = {}
-    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            local name = obj.Name:lower()
-            if name:find("purchase") or name:find("buy") or name:find("gamepass") or name:find("pass") or name:find("shop") or name:find("product") then
-                table.insert(TARGET_REMOTES, obj)
-            end
-        end
-    end
-    return #TARGET_REMOTES
-end
-
--- ================================================
--- 📡 جلب Gamepasses الحقيقية (زي الأصلي)
--- ================================================
-local function FetchRealGamepasses()
-    local gameId = game.PlaceId
-    local url = "https://economy.roblox.com/v1/games/" .. gameId .. "/gamepasses?limit=100"
-    local success, response = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(url))
-    end)
-    
-    if success and response and response.data then
-        GAMEPASS_LIST = {}
-        for _, gp in ipairs(response.data) do
-            table.insert(GAMEPASS_LIST, {
-                id = gp.id,
-                name = gp.name,
-                price = gp.price or 0
-            })
-        end
-        return true, #GAMEPASS_LIST
-    else
-        -- بيانات تجريبية احتياطية إذا فشل الـ API
-        GAMEPASS_LIST = {
-            {id = 588368, name = "Gamepass #588368", price = 100},
-            {id = 588369, name = "Gamepass #588369", price = 200},
-            {id = 588370, name = "Gamepass #588370", price = 300},
-        }
-        return false, #GAMEPASS_LIST
-    end
-end
-
--- ================================================
--- ⚔️ METHOD 1 (مطور: دقيق، مرة واحدة)
--- ================================================
-local function Method1_ClientBypass()
-    if not SELECTED_GAMEPASS_ID then
-        print("❌ Select a Gamepass first")
-        return false
-    end
-    
-    local payload = {
-        gamepassId = SELECTED_GAMEPASS_ID,
-        playerId = plr.UserId,
-        timestamp = os.time(),
-        purchaseType = "Gamepass",
-        receipt = HttpService:GenerateGUID(false)
-    }
-    
-    -- إرسال فقط للـ Remotes المنطقية
-    for _, remote in pairs(TARGET_REMOTES) do
-        pcall(function() remote:FireServer(payload) end)
-        pcall(function() remote:FireServer(SELECTED_GAMEPASS_ID) end)
-    end
-    
-    -- المحاولة المباشرة عبر MarketplaceService
-    pcall(function() MarketplaceService:PromptProductPurchase(plr, SELECTED_GAMEPASS_ID) end)
-    
-    print("✅ METHOD 1 executed on: " .. SELECTED_GAMEPASS_NAME)
-    return true
-end
-
--- ================================================
--- ⚔️ METHOD 6 (مطور: دقيق، بدون ضوضاء)
--- ================================================
-local function Method6_RemoteReplay()
-    if not SELECTED_GAMEPASS_ID then
-        print("❌ Select a Gamepass first")
-        return false
-    end
-    
-    local learnedPayload = {
-        gamepassId = SELECTED_GAMEPASS_ID,
-        playerId = plr.UserId,
-        action = "purchase",
-        signature = HttpService:GenerateGUID(false)
-    }
-    
-    for _, remote in pairs(TARGET_REMOTES) do
-        pcall(function()
-            remote:FireServer(learnedPayload)
-            remote:FireServer({learnedPayload})
-            remote:FireServer(SELECTED_GAMEPASS_ID, learnedPayload)
-        end)
-        task.wait(0.05)
-    end
-    
-    print("✅ METHOD 6 executed on: " .. SELECTED_GAMEPASS_NAME)
-    return true
-end
-
--- ================================================
--- 🎨 بناء واجهة المحتوى الديناميكي
--- ================================================
-local function SwitchTab(tabName)
-    -- مسح المحتوى الحالي
+-- وظيفة عرض المحتوى حسب التبويب
+local function ShowContent(tabName)
     for _, child in pairs(RightContent:GetChildren()) do
-        if child.Name ~= "UICorner" then
-            child:Destroy()
-        end
+        if child.Name ~= "UICorner" then child:Destroy() end
     end
     
-    if tabName == "Information" then
-        local infoText = Instance.new("TextLabel", RightContent)
-        infoText.Size = UDim2.new(1, -20, 0.8, 0)
-        infoText.Position = UDim2.new(0, 10, 0.05, 0)
-        infoText.BackgroundTransparency = 1
-        infoText.TextColor3 = Color3.fromRGB(200, 200, 200)
-        infoText.Font = Enum.Font.Gotham
-        infoText.TextSize = 13
-        infoText.TextXAlignment = Enum.TextXAlignment.Left
-        infoText.TextYAlignment = Enum.TextYAlignment.Top
-        infoText.Text = string.format([[
-📊 GAME INFO
-━━━━━━━━━━━━━━━━━━━━━
-Game ID: %d
-Player: %s (%d)
-Remotes Found: %d
-
-🎮 SELECTED GAMEPASS
-━━━━━━━━━━━━━━━━━━━━━
-%s
-
-⚡ METHODS READY
-━━━━━━━━━━━━━━━━━━━━━
-Method 1: Client Bypass (Precision)
-Method 6: Remote Replay (Precision)
-        ]], game.PlaceId, plr.Name, plr.UserId, #TARGET_REMOTES, 
-           SELECTED_GAMEPASS_NAME or "None")
-        
-    elseif tabName == "Gamepass" then
+    if tabName == "Gamepass" then
         local dropdownBtn = Instance.new("TextButton", RightContent)
         dropdownBtn.Size = UDim2.new(0.9, 0, 0, 45)
         dropdownBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
@@ -204,7 +200,6 @@ Method 6: Remote Replay (Precision)
         local listLayout = Instance.new("UIListLayout", dropdownList)
         listLayout.Padding = UDim.new(0, 2)
         
-        -- تعبئة القائمة
         local function RefreshDropdown()
             for _, child in pairs(dropdownList:GetChildren()) do
                 if child:IsA("TextButton") then child:Destroy() end
@@ -213,14 +208,14 @@ Method 6: Remote Replay (Precision)
                 local btn = Instance.new("TextButton", dropdownList)
                 btn.Size = UDim2.new(1, -10, 0, 40)
                 btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-                btn.Text = gp.name .. " [" .. gp.price .. "]"
+                btn.Text = gp.name
                 btn.TextColor3 = Color3.fromRGB(220, 220, 220)
                 btn.Font = Enum.Font.Gotham
                 btn.TextSize = 12
                 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
                 
                 btn.MouseButton1Click:Connect(function()
-                    SELECTED_GAMEPASS_ID = gp.id
+                    SELECTED_GAMEPASS = gp.id
                     SELECTED_GAMEPASS_NAME = gp.name
                     dropdownBtn.Text = "✅ " .. gp.name
                     dropdownList.Visible = false
@@ -233,66 +228,84 @@ Method 6: Remote Replay (Precision)
             dropdownList.Visible = not dropdownList.Visible
         end)
         
+        local selectBtn = Instance.new("TextButton", RightContent)
+        selectBtn.Size = UDim2.new(0.9, 0, 0, 45)
+        selectBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
+        selectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 180)
+        selectBtn.Text = "✅ SELECT"
+        selectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        selectBtn.Font = Enum.Font.GothamBold
+        selectBtn.TextSize = 16
+        Instance.new("UICorner", selectBtn).CornerRadius = UDim.new(0, 8)
+        
+        selectBtn.MouseButton1Click:Connect(function()
+            if SELECTED_GAMEPASS then
+                print("🎯 Selected: " .. SELECTED_GAMEPASS_NAME)
+            end
+        end)
+        
         RefreshDropdown()
         
     elseif tabName == "Buy" then
-        local m1Btn = Instance.new("TextButton", RightContent)
-        m1Btn.Size = UDim2.new(0.9, 0, 0, 60)
-        m1Btn.Position = UDim2.new(0.05, 0, 0.08, 0)
-        m1Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-        m1Btn.Text = "🕵️ METHOD 1\nClient Bypass"
-        m1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        m1Btn.Font = Enum.Font.GothamBold
-        m1Btn.TextSize = 14
-        Instance.new("UICorner", m1Btn).CornerRadius = UDim.new(0, 10)
+        local methods = {
+            {"🕵️ Client Bypass", ARSENAL.Method1_ClientBypass, "ClientBypass"},
+            {"🌊 Prompt Flood", ARSENAL.Method2_PromptFlood, "PromptFlood"},
+            {"📜 Receipt Forgery", ARSENAL.Method3_ReceiptForgery, "ReceiptForgery"},
+            {"💉 Memory Injection", ARSENAL.Method4_MemoryInjection, "MemoryInjection"},
+            {"🗄️ DataStore Overload", ARSENAL.Method5_DataStoreOverload, "DataStoreOverload"},
+            {"🔄 Remote Replay", ARSENAL.Method6_RemoteReplay, "RemoteReplay"},
+            {"🚨 FULL SIEGE", ARSENAL.Method7_FullSiege, "FullSiege"}
+        }
         
-        local m6Btn = Instance.new("TextButton", RightContent)
-        m6Btn.Size = UDim2.new(0.9, 0, 0, 60)
-        m6Btn.Position = UDim2.new(0.05, 0, 0.40, 0)
-        m6Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-        m6Btn.Text = "🔄 METHOD 6\nRemote Replay"
-        m6Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        m6Btn.Font = Enum.Font.GothamBold
-        m6Btn.TextSize = 14
-        Instance.new("UICorner", m6Btn).CornerRadius = UDim.new(0, 10)
-        
-        m1Btn.MouseButton1Click:Connect(function()
-            if SELECTED_GAMEPASS_ID then
-                Method1_ClientBypass()
-                m1Btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-                task.delay(1, function() m1Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 50) end)
-            else
-                print("❌ Select a Gamepass first from Gamepass tab")
-            end
-        end)
-        
-        m6Btn.MouseButton1Click:Connect(function()
-            if SELECTED_GAMEPASS_ID then
-                Method6_RemoteReplay()
-                m6Btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-                task.delay(1, function() m6Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 50) end)
-            else
-                print("❌ Select a Gamepass first from Gamepass tab")
-            end
-        end)
+        for i, m in ipairs(methods) do
+            local btn = Instance.new("TextButton", RightContent)
+            btn.Size = UDim2.new(0.9, 0, 0, 45)
+            btn.Position = UDim2.new(0.05, 0, 0.05 + (i-1)*0.13, 0)
+            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+            btn.Text = m[1]
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Font = Enum.Font.GothamBold
+            btn.TextSize = 14
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+            
+            btn.MouseButton1Click:Connect(function()
+                ExecuteAttack(m[3], m[2], SELECTED_GAMEPASS, SELECTED_GAMEPASS_NAME)
+            end)
+        end
+    elseif tabName == "Information" then
+        local info = Instance.new("TextLabel", RightContent)
+        info.Size = UDim2.new(1, -20, 0.9, 0)
+        info.Position = UDim2.new(0, 10, 0.05, 0)
+        info.BackgroundTransparency = 1
+        info.TextColor3 = Color3.fromRGB(200, 200, 200)
+        info.Font = Enum.Font.Gotham
+        info.TextSize = 13
+        info.TextXAlignment = Enum.TextXAlignment.Left
+        info.TextYAlignment = Enum.TextYAlignment.Top
+        info.Text = [[
+🔥 BE MAGIC - ARSENAL EDITION
+⚡ 7 STEALTH EXPLOIT METHODS
+
+📊 Game ID: ]] .. game.PlaceId .. [[
+👤 Player: ]] .. plr.Name .. [[
+
+✅ Select Gamepass → Choose target
+⚔️ Buy → Execute attack methods
+        ]]
     end
 end
 
--- ================================================
--- بناء الواجهة الرئيسية (UI كما أرسلتها)
--- ================================================
+-- بناء الواجهة الرئيسية
 local function BuildUI()
-    -- الواجهة الرئيسية
     MainFrame.Name = "MainFrame"
     MainFrame.Parent = ScreenGui
     MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-    MainFrame.Size = UDim2.new(0, 520, 0, 340)
-    MainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
+    MainFrame.Size = UDim2.new(0, 520, 0, 400)
+    MainFrame.Position = UDim2.new(0.5, -260, 0.5, -200)
     MainFrame.BorderSizePixel = 0
     MainFrame.Visible = false
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
     
-    -- القائمة الجانبية
     LeftSidebar.Name = "Sidebar"
     LeftSidebar.Parent = MainFrame
     LeftSidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -300,7 +313,6 @@ local function BuildUI()
     LeftSidebar.BorderSizePixel = 0
     Instance.new("UICorner", LeftSidebar).CornerRadius = UDim.new(0, 12)
     
-    -- العنوان
     Title.Parent = LeftSidebar
     Title.Text = "Be Mozer"
     Title.Size = UDim2.new(1, 0, 0, 45)
@@ -311,7 +323,6 @@ local function BuildUI()
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.BackgroundTransparency = 1
     
-    -- زر الإغلاق
     CloseBtn.Name = "CloseBtn"
     CloseBtn.Parent = MainFrame
     CloseBtn.Text = "X"
@@ -322,7 +333,6 @@ local function BuildUI()
     CloseBtn.Font = Enum.Font.GothamBold
     CloseBtn.TextSize = 22
     
-    -- تبويبات
     TabContainer.Parent = LeftSidebar
     TabContainer.Position = UDim2.new(0, 10, 0, 65)
     TabContainer.Size = UDim2.new(1, -20, 0.55, 0)
@@ -342,46 +352,11 @@ local function BuildUI()
         btn.TextSize = 12
         btn.TextXAlignment = Enum.TextXAlignment.Left
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-        
         btn.MouseButton1Click:Connect(function()
-            SwitchTab(tabName)
+            ShowContent(tabName)
         end)
     end
     
-    -- بروفايل المستخدم
-    UserProfile.Parent = LeftSidebar
-    UserProfile.Size = UDim2.new(1, -12, 0, 50)
-    UserProfile.Position = UDim2.new(0, 6, 1, -60)
-    UserProfile.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Instance.new("UICorner", UserProfile).CornerRadius = UDim.new(0, 10)
-    
-    UserIcon.Parent = UserProfile
-    UserIcon.Size = UDim2.new(0, 34, 0, 34)
-    UserIcon.Position = UDim2.new(0, 8, 0.5, -17)
-    UserIcon.Image = Players:GetUserThumbnailAsync(plr.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    Instance.new("UICorner", UserIcon).CornerRadius = UDim.new(1, 0)
-    
-    UserName.Parent = UserProfile
-    UserName.Text = plr.DisplayName
-    UserName.Size = UDim2.new(1, -50, 0, 15)
-    UserName.Position = UDim2.new(0, 48, 0.3, -2)
-    UserName.TextColor3 = Color3.fromRGB(255, 255, 255)
-    UserName.Font = Enum.Font.GothamBold
-    UserName.TextSize = 11
-    UserName.TextXAlignment = Enum.TextXAlignment.Left
-    UserName.BackgroundTransparency = 1
-    
-    UserID.Parent = UserProfile
-    UserID.Text = "@" .. plr.Name
-    UserID.Size = UDim2.new(1, -50, 0, 15)
-    UserID.Position = UDim2.new(0, 48, 0.6, -2)
-    UserID.TextColor3 = Color3.fromRGB(130, 130, 130)
-    UserID.Font = Enum.Font.Gotham
-    UserID.TextSize = 9
-    UserID.TextXAlignment = Enum.TextXAlignment.Left
-    UserID.BackgroundTransparency = 1
-    
-    -- منطقة المحتوى
     RightContent.Name = "Content"
     RightContent.Parent = MainFrame
     RightContent.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -389,7 +364,6 @@ local function BuildUI()
     RightContent.Size = UDim2.new(1, -175, 1, -60)
     Instance.new("UICorner", RightContent).CornerRadius = UDim.new(0, 12)
     
-    -- زر التصغير (M)
     MinimizedFrame.Name = "MinimizedFrame"
     MinimizedFrame.Parent = ScreenGui
     MinimizedFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -402,7 +376,6 @@ local function BuildUI()
     MinimizedFrame.BorderSizePixel = 0
     Instance.new("UICorner", MinimizedFrame).CornerRadius = UDim.new(0, 12)
     
-    -- تأثير قوس قزح
     task.spawn(function()
         while true do
             MinimizedFrame.TextColor3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
@@ -410,9 +383,8 @@ local function BuildUI()
         end
     end)
     
-    -- السحب
     local function MakeDraggable(frame)
-        local UserInputService = game:GetService("UserInputService")
+        local UIS = game:GetService("UserInputService")
         local dragging, dragStart, startPos
         frame.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -421,7 +393,7 @@ local function BuildUI()
                 startPos = frame.Position
             end
         end)
-        UserInputService.InputChanged:Connect(function(input)
+        UIS.InputChanged:Connect(function(input)
             if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                 local delta = input.Position - dragStart
                 frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
@@ -437,7 +409,6 @@ local function BuildUI()
     MakeDraggable(MainFrame)
     MakeDraggable(MinimizedFrame)
     
-    -- أحداث الإغلاق والفتح
     CloseBtn.MouseButton1Click:Connect(function()
         MainFrame.Visible = false
         MinimizedFrame.Visible = true
@@ -446,11 +417,10 @@ local function BuildUI()
     MinimizedFrame.MouseButton1Click:Connect(function()
         MainFrame.Visible = true
         MinimizedFrame.Visible = false
-        SwitchTab("Information")
+        ShowContent("Information")
     end)
     
-    -- تشغيل التبويب الافتراضي
-    SwitchTab("Information")
+    ShowContent("Information")
     MainFrame.Visible = true
 end
 
@@ -491,10 +461,9 @@ end
 -- ================================================
 -- 🚀 بدء التشغيل
 -- ================================================
+LOAD_GAMEPASSES()
 task.spawn(function()
     ShowWelcome()
-    AnalyzeRemotes()
-    FetchRealGamepasses()
     BuildUI()
-    print("✅ MOZER HUB v2 Ready | Methods 1 & 6 Active")
+    print("✅ MOZER HUB v2 Ready | 7 Methods Active")
 end)
