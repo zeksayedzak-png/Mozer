@@ -12,23 +12,25 @@ local MText = Instance.new("TextLabel")
 
 -- إعدادات الـ ScreenGui
 ScreenGui.Name = "MozerHub"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = (game:GetService("CoreGui") or game:GetService("Players").LocalPlayer.PlayerGui)
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
--- 1. وظيفة الإشعار (يشبه إشعار اللعبة الأصلي)
+-- 1. وظيفة الإشعار (تصميم نظام اللعبة الأصلي)
 local function CustomNotification()
     local NotiFrame = Instance.new("Frame")
     local NotiTitle = Instance.new("TextLabel")
     local NotiDesc = Instance.new("TextLabel")
     local NotiCorner = Instance.new("UICorner")
 
-    NotiFrame.Name = "CustomNotification"
+    NotiFrame.Name = "ProMagicNotification"
     NotiFrame.Parent = ScreenGui
-    NotiFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    NotiFrame.BackgroundTransparency = 0.1
+    NotiFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    NotiFrame.BackgroundTransparency = 0.2
     NotiFrame.BorderSizePixel = 0
-    NotiFrame.Position = UDim2.new(1, 20, 0.8, 0) -- يبدأ من خارج الشاشة
-    NotiFrame.Size = UDim2.new(0, 260, 0, 70)
+    -- البداية من خارج الشاشة لليمين
+    NotiFrame.Position = UDim2.new(1, 10, 0.85, 0) 
+    NotiFrame.Size = UDim2.new(0, 280, 0, 75)
+    NotiFrame.ZIndex = 10
 
     NotiCorner.CornerRadius = UDim.new(0, 10)
     NotiCorner.Parent = NotiFrame
@@ -40,7 +42,7 @@ local function CustomNotification()
     NotiTitle.Size = UDim2.new(0.9, 0, 0.4, 0)
     NotiTitle.Font = Enum.Font.GothamBold
     NotiTitle.Text = "ProMagic"
-    NotiTitle.TextSize = 18
+    NotiTitle.TextSize = 20
     NotiTitle.TextXAlignment = Enum.TextXAlignment.Left
 
     -- محتوى الإشعار
@@ -50,11 +52,11 @@ local function CustomNotification()
     NotiDesc.Size = UDim2.new(0.9, 0, 0.4, 0)
     NotiDesc.Font = Enum.Font.GothamMedium
     NotiDesc.Text = "نحن هنا للتهكير ولسنا هنا للتعمير"
-    NotiDesc.TextColor3 = Color3.fromRGB(200, 200, 200)
+    NotiDesc.TextColor3 = Color3.fromRGB(255, 255, 255)
     NotiDesc.TextSize = 14
     NotiDesc.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- تأثير قوس قزح للعنوان فقط
+    -- تأثير قوس قزح للعنوان ProMagic
     spawn(function()
         while NotiFrame.Parent do
             local hue = tick() % 5 / 5
@@ -64,22 +66,25 @@ local function CustomNotification()
     end)
 
     -- تحريك الإشعار للداخل (Slide In)
-    NotiFrame:TweenPosition(UDim2.new(1, -270, 0.8, 0), "Out", "Quart", 0.5, true)
+    NotiFrame:TweenPosition(UDim2.new(1, -290, 0.85, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.6, true)
 
     -- اختفاء بعد 5 ثواني
-    task.wait(5)
-    NotiFrame:TweenPosition(UDim2.new(1, 20, 0.8, 0), "In", "Quart", 0.5, true)
-    task.wait(0.5)
-    NotiFrame:Destroy()
+    task.delay(5, function()
+        if NotiFrame then
+            NotiFrame:TweenPosition(UDim2.new(1, 10, 0.85, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quart, 0.6, true)
+            task.wait(0.6)
+            NotiFrame:Destroy()
+        end
+    end)
 end
 
 -- 2. رسالة الترحيب (Mozer Welcome)
 local function ShowWelcome()
-    local WelcomeGui = Instance.new("ScreenGui", game.CoreGui)
+    local WelcomeGui = Instance.new("ScreenGui", ScreenGui.Parent)
     
     local MozerLabel = Instance.new("TextLabel", WelcomeGui)
     MozerLabel.Size = UDim2.new(1, 0, 0.1, 0)
-    MozerLabel.Position = UDim2.new(0, 0, 0.38, 0)
+    MozerLabel.Position = UDim2.new(0, 0, 0.35, 0)
     MozerLabel.BackgroundTransparency = 1
     MozerLabel.Text = "Mozer"
     MozerLabel.TextSize = 80
@@ -87,7 +92,7 @@ local function ShowWelcome()
 
     local WelcomeLabel = Instance.new("TextLabel", WelcomeGui)
     WelcomeLabel.Size = UDim2.new(1, 0, 0.1, 0)
-    WelcomeLabel.Position = UDim2.new(0, 0, 0.56, 0) -- مسافة أكبر كما طلبت
+    WelcomeLabel.Position = UDim2.new(0, 0, 0.55, 0) -- تباعد أكبر كما طلبت
     WelcomeLabel.BackgroundTransparency = 1
     WelcomeLabel.Text = "Welcome"
     WelcomeLabel.TextSize = 50
@@ -135,7 +140,7 @@ CloseBtn.Size = UDim2.new(0, 30, 0, 35)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 18
+CloseBtn.TextSize = 20
 
 TopSeparator.Parent = MainFrame
 TopSeparator.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -144,7 +149,7 @@ TopSeparator.Position = UDim2.new(0, 0, 0.16, 0)
 TopSeparator.Size = UDim2.new(1, 0, 0, 1)
 
 GamepassBtn.Parent = MainFrame
-GamepassBtn.Size = UDim2.new(0, 75, 0, 22)
+GamepassBtn.Size = UDim2.new(0, 80, 0, 24)
 GamepassBtn.Position = UDim2.new(0.05, 0, 0.22, 0)
 GamepassBtn.Text = "Gamepass"
 GamepassBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -154,8 +159,8 @@ GamepassBtn.TextSize = 11
 Instance.new("UICorner", GamepassBtn).CornerRadius = UDim.new(0, 4)
 
 BuyBtn.Parent = MainFrame
-BuyBtn.Size = UDim2.new(0, 75, 0, 22)
-BuyBtn.Position = UDim2.new(0.28, 0, 0.22, 0)
+BuyBtn.Size = UDim2.new(0, 80, 0, 24)
+BuyBtn.Position = UDim2.new(0.3, 0, 0.22, 0)
 BuyBtn.Text = "Buy"
 BuyBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 BuyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -165,7 +170,7 @@ Instance.new("UICorner", BuyBtn).CornerRadius = UDim.new(0, 4)
 
 DragHandle.Parent = MainFrame
 DragHandle.Size = UDim2.new(0, 50, 0, 3)
-DragHandle.Position = UDim2.new(0.5, -25, 0.95, 0)
+DragHandle.Position = UDim2.new(0.5, -25, 0.96, 0)
 DragHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 DragHandle.BackgroundTransparency = 0.8
 Instance.new("UICorner", DragHandle)
@@ -244,7 +249,8 @@ end)
 
 -- 5. تشغيل التسلسل
 spawn(function()
-    ShowWelcome() -- شاشة الترحيب
+    ShowWelcome()         -- شاشة الترحيب
     MainFrame.Visible = true -- فتح الواجهة
-    CustomNotification() -- ظهور الإشعار في الزاوية
+    task.wait(0.2)
+    CustomNotification()  -- الإشعار الآن سيظهر في الركن الأيمن السفلي
 end)
